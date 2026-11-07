@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HANDYMAN SOFIA — Калькулятор работ</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --card: #1a1a1a;
+    --accent: #ff7900;
+    --text: #ffffff;
+    --muted: #aaaaaa;
+    --border: #2a2a2a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.4;
+    padding: 16px;
+    padding-bottom: 120px;
+  }
+  header {
+    text-align: center;
+    padding: 16px 0 12px;
+    border-bottom: 2px solid var(--accent);
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 1.6rem; font-weight: 800; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+  section { margin-bottom: 24px; }
+  h2 {
+    color: var(--accent);
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #333;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .item:has(input:checked) {
+    border-color: var(--accent);
+    background: #221a12;
+  }
+  .item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .item-name { flex: 1; font-size: 0.95rem; }
+  .item-price {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+  .total-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #111;
+    border-top: 2px solid var(--accent);
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+  }
+  .total-label { font-size: 1rem; color: var(--muted); }
+  .total-sum {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .reset-btn {
+    background: #333;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .reset-btn:active { background: #444; }
+  .note {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>HANDYMAN <span>SOFIA</span></h1>
+  <div class="subtitle">Калькулятор выполненных работ</div>
+</header>
+
+<div id="services"></div>
+
+<p class="note">Отметьте выполненные работы — сумма посчитается автоматически.<br>Минимальный выезд 30 € добавляется отдельно при необходимости.</p>
+
+<div class="total-bar">
+  <div>
+    <div class="total-label">Итого к оплате:</div>
+    <div class="total-sum" id="total">0 €</div>
+  </div>
+  <button class="reset-btn" onclick="resetAll()">Сбросить</button>
+</div>
+
+<script>
+const services = [
+  // Сантехника
+  { cat: "Сантехника", name: "Замена или установка смесителя / крана", price: 40 },
+  { cat: "Сантехника", name: "Монтаж или замена сифона раковины", price: 30 },
+  { cat: "Сантехника", name: "Установка новой раковины / умывальника", price: 60 },
+  { cat: "Сантехника", name: "Подключение стиральной или посудомоечной машины", price: 50 },
+  { cat: "Сантехника", name: "Устранение локального засора", price: 40 },
+  { cat: "Сантехника", name: "Чистка и обслуживание бойлера", price: 60 },
+  { cat: "Сантехника", name: "Замена ТЭНа в бойлере", price: 65 },
+  { cat: "Сантехника", name: "Установка / замена унитаза", price: 80 },
+  { cat: "Сантехника", name: "Врезка крана / установка шарового крана", price: 40 },
+  { cat: "Сантехника", name: "Пайка / замена участка трубы (от)", price: 50 },
+  { cat: "Сантехника", name: "Замена арматуры унитаза", price: 35 },
+  { cat: "Сантехника", name: "Замена анода в бойлере", price: 30 },
+
+  // Электрика
+  { cat: "Электрика", name: "Установка люстры / потолочного светильника", price: 40 },
+  { cat: "Электрика", name: "Замена розетки или выключателя", price: 25 },
+  { cat: "Электрика", name: "Подключение варочной панели / духового шкафа", price: 50 },
+  { cat: "Электрика", name: "Поиск и устранение короткого замыкания (от)", price: 45 },
+  { cat: "Электрика", name: "Установка дополнительной розетки (с прокладкой)", price: 45 },
+  { cat: "Электрика", name: "Замена автомата / УЗО в щитке", price: 40 },
+
+  // Сборка и монтаж
+  { cat: "Сборка и монтаж", name: "Сборка комода, тумбы или кухонной шафы", price: 50 },
+  { cat: "Сборка и монтаж", name: "Сборка шкафа / гардероба", price: 60 },
+  { cat: "Сборка и монтаж", name: "Сборка кровати", price: 40 },
+  { cat: "Сборка и монтаж", name: "Навешивание телевизора на стену", price: 40 },
+  { cat: "Сборка и монтаж", name: "Установка полок, картин или зеркала", price: 20 },
+  { cat: "Сборка и монтаж", name: "Монтаж карниза для штор", price: 30 },
+  { cat: "Сборка и монтаж", name: "Регулировка мебельных фасадов и дверей", price: 30 },
+  { cat: "Сборка и монтаж", name: "Сверление отверстий (за шт.)", price: 5 },
+
+  // Мелкие
+  { cat: "Мелкие работы", name: "Мелкие работы — 1-й час", price: 30 },
+  { cat: "Мелкие работы", name: "Мелкие работы — каждый следующий час", price: 20 },
+  { cat: "Мелкие работы", name: "Выезд / диагностика (если отдельно)", price: 30 },
+];
+
+function render() {
+  const container = document.getElementById('services');
+  let html = '';
+  let currentCat = '';
+
+  services.forEach((s, i) => {
+    if (s.cat !== currentCat) {
+      currentCat = s.cat;
+      html += `<section><h2>${currentCat}</h2>`;
+    }
+    html += `
+      <label class="item">
+        <input type="checkbox" data-price="${s.price}" onchange="calc()">
+        <span class="item-name">${s.name}</span>
+        <span class="item-price">${s.price} €</span>
+      </label>
+    `;
+    // Close section if next is different category or last
+    if (i === services.length - 1 || services[i+1].cat !== currentCat) {
+      html += `</section>`;
+    }
+  });
+
+  container.innerHTML = html;
+}
+
+function calc() {
+  let total = 0;
+  document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+    total += parseInt(cb.dataset.price);
+  });
+  document.getElementById('total').textContent = total + ' €';
+}
+
+function resetAll() {
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  calc();
+}
+
+render();
+</script>
+
+</body>
+</html>
